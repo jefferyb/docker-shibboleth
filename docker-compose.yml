@@ -1,0 +1,50 @@
+# To run it, do:
+#   $ docker-compose pull && docker-compose up -d
+#
+# To upgrade, do:
+#   $ docker-compose pull && docker-compose stop && docker-compose rm -f && docker-compose up -d
+#
+# To check the logs, do:
+#   $ docker-compose logs -f
+#
+
+version: '2'
+
+services:
+  kuali-coeus:
+    ####### Environment vars for kc-config.xml
+    environment:
+      - "KUALI_APP_URL=example.com"
+      - "KUALI_APP_URL_PORT="
+      - "TZ=America/Chicago"
+    image:          jefferyb/kuali_coeus
+    container_name: kuali-coeus-bundled
+    hostname:       kualicoeusbundled
+    restart:        always
+
+  shibboleth:
+    links:
+      - kuali-coeus
+    environment:
+      - "TZ=America/Chicago"
+      - "HOSTNAME=example.com"
+      ####### APACHE/TOMCAT SECTION #######
+      - "TOMCAT_DOCKER_CONTAINER=kuali-coeus-bundled"
+      - "TOMCAT_SESSION_LOCATION=kc-dev"
+      ####### SHIBBOLETH SECTION #######
+      - "IDP_ENTITY_ID=https://idp.testshib.org/idp/shibboleth"
+      - "IDP_METADATA_URL=http://www.testshib.org/metadata/testshib-providers.xml"
+      - "SUPPORT_EMAIL=root@localhost"
+      - "SHIB_METADATA_BACKUP_URL=http://www.testshib.org/metadata/testshib-providers.xml"
+      - "SHIB_DOWNLOAD_METADATA=true"
+    ports:
+      - 80:80
+      - 443:443
+    image: jefferyb/shibboleth
+    container_name: shibboleth-server
+    hostname: shibbolethserver
+    restart: always
+    volumes:
+      # certs location
+      - /opt/letsencrypt/letsencrypt-data/etc/letsencrypt/live/example.com/cert.pem:/etc/ssl/certs/ssl-cert-snakeoil.pem:ro
+      - /opt/letsencrypt/letsencrypt-data/etc/letsencrypt/live/example.com/privkey.pem:/etc/ssl/private/ssl-cert-snakeoil.key:ro

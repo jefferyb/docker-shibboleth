@@ -1,0 +1,41 @@
+#Install shibboleth
+
+---
+- name: Checking, ( or if not present), Installing shib and dependencies
+  apt: pkg={{ item }} install_recommends=no state=present update_cache=yes
+  with_items:
+    - shibboleth-sp2-schemas
+    - libshibsp-dev
+    - libshibsp-doc
+    - libapache2-mod-shib2
+    - opensaml2-tools
+  notify: restart shibd
+
+- name: Checking, ( or if not present), Generating the SP keys
+  command: shib-keygen -f
+  args:
+    chdir: /etc/shibboleth/
+    creates: /etc/shibboleth/sp-key.pem
+  notify: restart shibd
+
+- name: Configuring shibboleth2.xml
+  template: src={{ item }}.j2 dest=/etc/shibboleth/{{ item }}  group=_shibd owner=_shibd mode=0644
+  with_items:
+    - shibboleth2.xml
+  notify: restart shibd
+
+- name: Checking, ( or if not present), Creating /etc/shibboleth/metadata directory
+  file: path=/etc/shibboleth/metadata state=directory mode=2774 group=_shibd owner=_shibd
+
+- name: Downloading metadata into metadata directory as backup
+  get_url: >
+    url={{ SHIB_METADATA_BACKUP_URL }}
+    dest=/etc/shibboleth/metadata/idp-metadata.xml
+    mode=0640
+    group=_shibd
+    owner=_shibd
+  when: SHIB_DOWNLOAD_METADATA
+
+- name: Enabling shibboleth2
+  command: a2enmod shib2
+  notify: restart shibd
