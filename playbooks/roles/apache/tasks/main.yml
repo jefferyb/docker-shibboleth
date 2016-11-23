@@ -42,9 +42,7 @@
   notify: restart apache
 
 - name: Enabling SSL
-  apache2_module:
-    state: present
-    name: "{{ item }}"
+  shell: a2enmod "{{ item }}"
   with_items:
     - ssl
     - rewrite
