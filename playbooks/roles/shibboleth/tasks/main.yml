@@ -1,13 +1,20 @@
 #Install shibboleth
 
 ---
-- name: Checking, ( or if not present), Installing shib and dependencies
-  apt: pkg={{ item }} install_recommends=no state=present update_cache=yes
+- name: Add Shibboleth Repository with signing key
+  apt_key:
+    id: "294E37D154156E00FB96D7AA26C3C46915B76742"
+    url: http://pkg.switch.ch/switchaai/SWITCHaai-swdistrib.asc
+    state: present
+
+- apt_repository:
+    repo: "deb http://pkg.switch.ch/switchaai/ubuntu {{ ansible_distribution_release }} main"
+    state: present
+
+- name: Installing shib and dependencies
+  apt: pkg={{ item }} install_recommends=yes state=present update_cache=yes
   with_items:
-    - shibboleth-sp2-schemas
-    - libshibsp-dev
-    - libshibsp-doc
-    - libapache2-mod-shib2
+    - shibboleth
     - opensaml2-tools
   notify: restart shibd
 
