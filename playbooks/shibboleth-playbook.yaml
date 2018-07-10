@@ -1,4 +1,4 @@
 ---
-- hosts: local
+- hosts: localhost
   roles:
     - shibboleth
