@@ -18,6 +18,14 @@
     group: root
   notify: restart apache
 
+- name: Configuring ports
+  template:
+    src: ports.conf.j2
+    dest: /etc/apache2/ports.conf
+    owner: root
+    group: root
+  notify: restart apache
+
 - name: Configuring apache proxy
   template:
     src: "{{ item }}.j2"

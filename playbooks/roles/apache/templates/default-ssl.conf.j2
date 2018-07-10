@@ -1,5 +1,5 @@
 <IfModule mod_ssl.c>
-	<VirtualHost _default_:443>
+	<VirtualHost _default_:{{ APACHE_HTTP_PORTS }}>
 
 		ServerAdmin {{ APACHE_SERVER_ADMIN }}
 		DocumentRoot {{ APACHE_DOCUMENTROOT }}

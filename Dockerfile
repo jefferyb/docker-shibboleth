@@ -7,7 +7,9 @@ RUN \
 
 ENV HOSTNAME="localhost"
 ####### APACHE SECTION #######
-ENV APACHE_PORT="80"
+ENV APACHE_PORT="8080"
+ENV APACHE_HTTP_PORT="8080"
+ENV APACHE_HTTP_PORTS="8443"
 ENV APACHE_SERVER_ADMIN="webmaster@localhost"
 ENV APACHE_DOCUMENTROOT="/var/www/html"
 ####### TOMCAT SECTION #######
@@ -39,10 +41,9 @@ RUN \
   apt-get autoremove -y && \
   rm -rf /var/lib/apt/lists/*
 
-EXPOSE 80 443
+EXPOSE 8080 8443
 
 CMD \
-  ansible-playbook /opt/playbooks/shibboleth-playbook.yaml && \
   tail -f /var/log/apache2/access.log \
       -f /var/log/apache2/error.log \
       -f /var/log/apache2/other_vhosts_access.log \

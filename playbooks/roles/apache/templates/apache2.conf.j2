@@ -69,7 +69,7 @@
 #ServerRoot "/etc/apache2"
 
 UseCanonicalName On
-ServerName {{ HOSTNAME }}:{{ APACHE_PORT }}
+ServerName {{ HOSTNAME }}:{{ APACHE_HTTP_PORT }}
 ServerAdmin {{ APACHE_SERVER_ADMIN }}
 DocumentRoot {{ APACHE_DOCUMENTROOT }}
 
