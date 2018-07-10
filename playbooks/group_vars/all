@@ -5,6 +5,8 @@ HOSTNAME: "{{ lookup('env','HOSTNAME') }}"
 ####### APACHE SECTION #######
 
 APACHE_PORT: "{{ lookup('env','APACHE_PORT') }}"
+APACHE_HTTP_PORT: "{{ lookup('env','APACHE_HTTP_PORT') }}"
+APACHE_HTTPS_PORT: "{{ lookup('env','APACHE_HTTPS_PORT') }}"
 APACHE_SERVER_ADMIN: "{{ lookup('env','APACHE_SERVER_ADMIN') }}"
 APACHE_DOCUMENTROOT: "{{ lookup('env','APACHE_DOCUMENTROOT') }}"
 
