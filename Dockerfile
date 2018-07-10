@@ -37,6 +37,7 @@ RUN \
   ansible-playbook /opt/playbooks/shibboleth-playbook.yaml
 
 RUN \
+  chmod -R +r /var/log/apache2 && \
   apt-get clean && \
   apt-get autoremove -y && \
   rm -rf /var/lib/apt/lists/*
