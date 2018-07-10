@@ -28,11 +28,11 @@ ENV SSL_CERTS_STATE="New York"
 ENV SSL_CERTS_DAYS="365"
 
 
-ADD playbooks /root/playbooks
+ADD playbooks /opt/playbooks
 
 RUN \
-  mv /root/playbooks/hosts /etc/ansible/hosts && \
-  ansible-playbook /root/playbooks/shibboleth-playbook.yaml
+  mv /opt/playbooks/hosts /etc/ansible/hosts && \
+  ansible-playbook /opt/playbooks/shibboleth-playbook.yaml
 
 RUN \
   apt-get clean && \
@@ -42,7 +42,7 @@ RUN \
 EXPOSE 80 443
 
 CMD \
-  ansible-playbook /root/playbooks/shibboleth-playbook.yaml && \
+  ansible-playbook /opt/playbooks/shibboleth-playbook.yaml && \
   tail -f /var/log/apache2/access.log \
       -f /var/log/apache2/error.log \
       -f /var/log/apache2/other_vhosts_access.log \
