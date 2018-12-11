@@ -4,14 +4,8 @@ HOSTNAME: "{{ lookup('env','HOSTNAME') }}"
 
 ####### APACHE SECTION #######
 
-APACHE_PORT: "{{ lookup('env','APACHE_PORT') }}"
-APACHE_SERVER_ADMIN: "{{ lookup('env','APACHE_SERVER_ADMIN') }}"
-APACHE_DOCUMENTROOT: "{{ lookup('env','APACHE_DOCUMENTROOT') }}"
-
-####### TOMCAT SECTION #######
-
-TOMCAT_DOCKER_CONTAINER: "{{ lookup('env','TOMCAT_DOCKER_CONTAINER') }}"
-TOMCAT_SESSION_LOCATION: "{{ lookup('env','TOMCAT_SESSION_LOCATION') }}"
+SERVICE_TO_PROTECT: "{{ lookup('env','SERVICE_TO_PROTECT') }}"
+SERVICE_PORT: "{{ lookup('env','SERVICE_PORT') }}"
 
 ####### SHIBBOLETH SECTION #######
 
@@ -24,35 +18,3 @@ SHIB:
 SHIB_TEMPLATE_DIR: '.'
 SHIB_METADATA_BACKUP_URL: "{{ lookup('env','SHIB_METADATA_BACKUP_URL') }}"
 SHIB_DOWNLOAD_METADATA: "{{ lookup('env','SHIB_DOWNLOAD_METADATA') }}"
-
-####### SSL CERTIFICATE SECTION #######
-
-SSL_CERTS_GENERATE_SELF_SIGNED: true
-
-SSL_CERTS_COUNTRY: "{{ lookup('env','SSL_CERTS_COUNTRY') }}"
-SSL_CERTS_LOCALITY: "{{ lookup('env','SSL_CERTS_LOCALITY') }}"
-SSL_CERTS_ORGANIZATION: "{{ lookup('env','SSL_CERTS_ORGANIZATION') }}"
-SSL_CERTS_STATE: "{{ lookup('env','SSL_CERTS_STATE') }}"
-SSL_CERTS_COMMON_NAME: "{{ lookup('env','HOSTNAME') }}"
-SSL_CERTS_DAYS: "{{ lookup('env','SSL_CERTS_DAYS') }}"
-SSL_CERTS_FIELDS: "/C={{SSL_CERTS_COUNTRY}}/ST={{SSL_CERTS_STATE}}/L={{SSL_CERTS_LOCALITY}}/O={{SSL_CERTS_ORGANIZATION}}/CN={{SSL_CERTS_COMMON_NAME}}"
-
-SSL_CERTS_PATH: "/etc/ssl"
-SSL_CERTS_PRIVKEY_PATH: "{{SSL_CERTS_PATH}}/private/ssl-cert-snakeoil.key"
-SSL_CERTS_CERT_PATH: "{{SSL_CERTS_PATH}}/certs/ssl-cert-snakeoil.pem"
-SSL_CERTS_CSR_PATH: "{{SSL_CERTS_PATH}}/certs/ssl-cert-snakeoil.csr"
-SSL_CERTS_MODE: "0700"
-
-SSL_CERTS_KEY_SIZE: "2048"
-
-# ####### CERTIFICATE SECTION #######
-#
-# To use your own certificate, mount them using -v on the docker command or volumes in docker-compose
-#
-# For apache SSL, the certificates are located at:
-#   /etc/ssl/private/ssl-cert-snakeoil.key
-#   /etc/ssl/certs/ssl-cert-snakeoil.pem
-#
-# For shibd, the certificates are located at:
-#   /etc/shibboleth/sp-key.pem
-#   /etc/shibboleth/sp-cert.pem

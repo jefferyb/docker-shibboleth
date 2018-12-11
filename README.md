@@ -1,157 +1,232 @@
 [![](https://images.microbadger.com/badges/version/jefferyb/shibboleth-sp.svg)](http://microbadger.com/images/jefferyb/shibboleth-sp "Get your own version badge on microbadger.com") [![](https://images.microbadger.com/badges/image/jefferyb/shibboleth-sp.svg)](http://microbadger.com/images/jefferyb/shibboleth-sp "Get your own image badge on microbadger.com")
 
 ## jefferyb/shibboleth-sp
-This docker container should work with any tomcat web server/servlet...
+A Shibboleth Service Provider (SP). Just put this in front a service that you would like to protect, working as a Reverse-Proxy
 
 ## Supported tags
 -	[`latest` (*Dockerfile*)](https://github.com/jefferyb/docker-shibboleth-sp/blob/master/Dockerfile)
 
-## Features
-- HTTPS support.
-- Protect a path.
-- Automatically configure with your own settings.
-
-## Environment variables
+## VARIABLES
 - **HOSTNAME** : *(default: "localhost")*
 
-###### APACHE SECTION ######
-- **APACHE_PORT** : *(default: "80")*
-- **APACHE_SERVER_ADMIN** : *(default: "webmaster@localhost")*
-- **APACHE_DOCUMENTROOT** : *(default: "/var/www/html")*
+### APACHE SECTION
+- **SERVICE_TO_PROTECT** : *(default: "localhost")*
+- **SERVICE_PORT** : *(default: "80")*
 
-###### TOMCAT SECTION ######
-- **TOMCAT_DOCKER_CONTAINER** : *(default: "kuali-coeus-bundled")* Should be the name of your tomcat container or the hostname of where you tomcat lives... This setting is for ProxyPass & ProxyPassReverse
-- **TOMCAT_SESSION_LOCATION** : *(default: "kc-dev")* It should be the place you want to protect. For example: to protect "kc-dev" at https://example.com/kc-dev, just set it as "TOMCAT_SESSION_LOCATION=kc-dev". To protect the root, `/`, just leave it empty.
-
-###### SHIBBOLETH SECTION ######
-- **IDP_ENTITY_ID** : *(default: "https://idp.testshib.org/idp/shibboleth")*
-- **IDP_METADATA_URL** : *(default: "http://www.testshib.org/metadata/testshib-providers.xml")*
+### SHIBBOLETH SECTION
+- **IDP_ENTITY_ID** : *(default: "https://samltest.id/saml/idp")*
+- **IDP_METADATA_URL** : *(default: "https://samltest.id/saml/idp")*
 - **SUPPORT_EMAIL** : *(default: 'root@localhost')*
-- **SHIB_METADATA_BACKUP_URL** : *(default: "http://www.testshib.org/metadata/testshib-providers.xml")*
+- **SHIB_METADATA_BACKUP_URL** : *(default: "https://samltest.id/saml/idp")*
 - **SHIB_DOWNLOAD_METADATA** : *(default: true)*
-
-###### APACHE CERTIFICATE SECTION ######
-This section is useful during build time, for creating self-signed certificates...
-
-- **SSL_CERTS_COUNTRY** : *(default: "US")*
-- **SSL_CERTS_LOCALITY** : *(default: "New York")*
-- **SSL_CERTS_ORGANIZATION** : *(default: "Your company")*
-- **SSL_CERTS_STATE** : *(default: "New York")*
-- **SSL_CERTS_COMMON_NAME** : This will use whatever hostname you set above... Default: localhost
-- **SSL_CERTS_DAYS** : *(default: "365")*
 
 ## Port
 - **80**.
 - **443**.
 
 ## Setup
-We'll have 2 examples:
-In this example, we will setup [Kuali Coeus](https://hub.docker.com/r/jefferyb/kuali_coeus) with HTTPS enabled (using letsencrypt), that you can access at https://example.com/kc-dev.
+### Apache Certificates
 
-```console
-docker run -d \
-  --name kuali-coeus-bundled \
-  -h kualicoeusbundled \
-  -e KUALI_APP_URL=example.com \
-  -e KUALI_APP_URL_PORT= \
-  -e TZ=America/Chicago \
-  jefferyb/kuali_coeus
+* Certificate names:
+  * ssl.key
+  * ssl.crt
 
-docker run -d \
-  --name shibboleth-sp-server \
-  --link kuali-coeus-bundled \
-  -e HOSTNAME=example.com \
-  -e TOMCAT_DOCKER_CONTAINER=kuali-coeus-bundled \
-  -e TOMCAT_SESSION_LOCATION=kc-dev \
-  -e IDP_ENTITY_ID=https://idp.testshib.org/idp/shibboleth \
-  -e IDP_METADATA_URL=http://www.testshib.org/metadata/testshib-providers.xml \
+* Certificate location:
+
+  * /etc/apache2/ssl/
+
+    ```bash
+    $ ls /etc/apache2/ssl/
+    ssl.crt   ssl.key
+    ```
+
+* How to:
+  1. Request a signed certificate for your service/url or Create your own sefl-signed certificates that you want to use
+
+  2. Mount the keys or add them to your Dockerfile
+
+      ```Dockerfile
+      COPY etc/apache2/ssl/ssl.key /etc/apache2/ssl/ssl.key
+      COPY etc/apache2/ssl/ssl.crt /etc/apache2/ssl/ssl.crt
+      ```
+
+### Shibboleth Certificates
+
+* Certificate names:
+  * sp-key.pem
+  * sp-cert.pem
+
+* Certificate location:
+
+  * /etc/shibboleth/
+
+    ```bash
+    $ ls /etc/shibboleth/
+    sp-cert.pem   sp-key.pem
+    ```
+
+* How to:
+  1. Create your own shibboleth certificates
+
+
+      ```bash
+      $ HOSTNAME='example.com'
+      $ shib-keygen -f -u _shibd -h ${HOSTNAME} -y 7 -e https://${HOSTNAME}/shibboleth -o etc/shibboleth/
+      ```
+
+  2. Mount the keys or add them to your Dockerfile
+
+      ```Dockerfile
+      COPY etc/shibboleth/sp-key.pem /etc/shibboleth/sp-key.pem
+      COPY etc/shibboleth/sp-cert.pem /etc/shibboleth/sp-cert.pem
+      ```
+
+## Examples
+
+## **Using Openshift**
+
+```bash
+# Deploy tomcat
+$ oc new-app --name tomcat-server
+
+# Deploy shibboleth-sp
+$ oc new-app --name shibboleth-sp-for-tomcat \
+  --docker-image=jefferyb/shibboleth-sp \
+  -e SERVICE_TO_PROTECT='tomcat-server' \
+  -e SERVICE_PORT='8080' \
+  -e HOSTNAME=tomcat.example.com \
+  -e IDP_ENTITY_ID=https://samltest.id/saml/idp \
+  -e IDP_METADATA_URL=https://samltest.id/saml/idp \
   -e SUPPORT_EMAIL=root@localhost \
-  -e SHIB_METADATA_BACKUP_URL=http://www.testshib.org/metadata/testshib-providers.xml \
-  -e SHIB_DOWNLOAD_METADATA=true \
-  -v /opt/letsencrypt/letsencrypt-data/etc/letsencrypt/live/example.com/cert.pem:/etc/ssl/certs/ssl-cert-snakeoil.pem:ro \
-  -v /opt/letsencrypt/letsencrypt-data/etc/letsencrypt/live/example.com/privkey.pem:/etc/ssl/private/ssl-cert-snakeoil.key:ro \
-  -p 80:80 \
-  -p 443:443 \
-  jefferyb/shibboleth-sp
+  -e SHIB_METADATA_BACKUP_URL=https://samltest.id/saml/idp \
+  -e SHIB_DOWNLOAD_METADATA=true
 
+# Create a route
+$ oc create route passthrough shibboleth-sp-for-tomcat --insecure-policy=Redirect --service shibboleth-sp-for-tomcat --port='443-tcp' --hostname=tomcat.example.com
 ```
 
-And now you can access Kuali Coeus at https://example.com/kc-dev
+You should be redirected to a shibboleth login when you visit https://tomcat.example.com
 
-In next example, we will setup a tomcat instance with HTTPS enabled, that you can access at https://example.com.
+## **Using docker**
 
-```console
+```bash
+# Deploy tomcat
+docker run -d --name tomcat-server tomcat
+
+# Deploy shibboleth-sp
 docker run -d \
-  --name tomcat-server \
-  tomcat:8.0
-
-docker run -d \
-  --name shibboleth-sp-server \
+  --name shibboleth-sp \
   --link tomcat-server \
+  -e SERVICE_TO_PROTECT='tomcat-server' \
+  -e SERVICE_PORT='8080' \
   -e HOSTNAME=example.com \
-  -e TOMCAT_DOCKER_CONTAINER=tomcat-server \
-  -e TOMCAT_SESSION_LOCATION= \
-  -e IDP_ENTITY_ID=https://idp.testshib.org/idp/shibboleth \
-  -e IDP_METADATA_URL=http://www.testshib.org/metadata/testshib-providers.xml \
+  -e IDP_ENTITY_ID=https://samltest.id/saml/idp \
+  -e IDP_METADATA_URL=https://samltest.id/saml/idp \
   -e SUPPORT_EMAIL=root@localhost \
-  -e SHIB_METADATA_BACKUP_URL=http://www.testshib.org/metadata/testshib-providers.xml \
+  -e SHIB_METADATA_BACKUP_URL=https://samltest.id/saml/idp \
   -e SHIB_DOWNLOAD_METADATA=true \
   -p 80:80 \
   -p 443:443 \
   jefferyb/shibboleth-sp
-
 ```
 
-You should be redirected to a shibboleth login when you visit https://example.com...
+You should be redirected to a shibboleth login when you visit https://example.com
 
-**Using docker-compose file**
 
-    # To run it, do:
-    #   $ docker-compose pull && docker-compose up -d
-    #
-    # To upgrade, do:
-    #   $ docker-compose pull && docker-compose stop && docker-compose rm -f && docker-compose up -d
-    #
-    # To check the logs, do:
-    #   $ docker-compose logs -f
-    #
+## **Using a docker image (Dockerfile)**
 
-    version: '2'
+```Dockerfile
+# Dockerfile
+FROM jefferyb/shibboleth-sp
+MAINTAINER Example User <user@example.com>
 
-    services:
-      kuali-coeus:
-        ####### Environment vars for kc-config.xml
-        environment:
-          - "KUALI_APP_URL=example.com"
-          - "KUALI_APP_URL_PORT="
-          - "TZ=America/Chicago"
-        image:          jefferyb/kuali_coeus
-        container_name: kuali-coeus-bundled
-        hostname:       kualicoeusbundled
-        restart:        always
+ENV HOSTNAME="tomcat.example.com"
+####### APACHE SECTION #######
+ENV SERVICE_TO_PROTECT="tomcat-server"
+ENV SERVICE_PORT="8080"
+####### SHIBBOLETH SECTION #######
+ENV IDP_ENTITY_ID="https://samltest.id/saml/idp"
+ENV IDP_METADATA_URL="https://samltest.id/saml/idp"
+ENV SUPPORT_EMAIL='user@example.com'
+ENV SHIB_METADATA_BACKUP_URL="https://samltest.id/saml/idp"
+ENV SHIB_DOWNLOAD_METADATA=true
 
-      shibboleth:
-        links:
-          - kuali-coeus
-        environment:
-          - "HOSTNAME=example.com"
-          - "TOMCAT_DOCKER_CONTAINER=kuali-coeus-bundled"
-          - "TOMCAT_SESSION_LOCATION=kc-dev"
-          - "TZ=America/Chicago"
-        ports:
-          - 80:80
-          - 443:443
-        image: jefferyb/shibboleth
-        container_name: shibboleth-server
-        hostname: shibbolethserver
-        restart: always
-        volumes:
-          ####### SHIBBOLETH SECTION #######
-          - "IDP_ENTITY_ID=https://idp.testshib.org/idp/shibboleth"
-          - "IDP_METADATA_URL=http://www.testshib.org/metadata/testshib-providers.xml"
-          - "SUPPORT_EMAIL=root@localhost"
-          - "SHIB_METADATA_BACKUP_URL=http://www.testshib.org/metadata/testshib-providers.xml"
-          - "SHIB_DOWNLOAD_METADATA=true"
-          ####### CERTS CERTIFICATES #######
-          - /opt/letsencrypt/letsencrypt-data/etc/letsencrypt/live/example.com/cert.pem:/etc/ssl/certs/ssl-cert-snakeoil.pem:ro
-          - /opt/letsencrypt/letsencrypt-data/etc/letsencrypt/live/example.com/privkey.pem:/etc/ssl/private/ssl-cert-snakeoil.key:ro
+COPY etc/apache2/ssl/ /etc/apache2/ssl/
+COPY etc/shibboleth/ /etc/shibboleth/
+```
+
+```bash
+$ tree
+.
+├── Dockerfile
+├── etc
+│   ├── apache2
+│   │   └── ssl
+│   │       ├── ssl.crt
+│   │       └── ssl.key
+│   └── shibboleth
+│       ├── sp-cert.pem
+│       └── sp-key.pem
+
+4 directories, 5 files
+
+# Build the Shibboleth image
+$ docker build -t shibboleth-sp .
+
+# Deploy tomcat
+docker run -d --name tomcat-server tomcat
+
+# Deploy shibboleth-sp
+docker run -d \
+  --name shibboleth-sp \
+  --link tomcat-server \
+  -p 80:80 \
+  -p 443:443 \
+  shibboleth-sp
+```
+
+## **Using docker-compose file**
+
+```yaml
+# To run it, do:
+#   $ docker-compose pull && docker-compose up -d
+#
+# To upgrade, do:
+#   $ docker-compose pull && docker-compose stop && docker-compose rm -f && docker-compose up -d
+#
+# To check the logs, do:
+#   $ docker-compose logs -f
+#
+
+version: '2'
+
+services:
+  tomcat-server:
+    image: tomcat
+
+  shibboleth-sp:
+    image: jefferyb/shibboleth
+    container_name: shibboleth-sp
+    environment:
+      ####### APACHE SECTION #######
+      - SERVICE_TO_PROTECT='tomcat-server'
+      - SERVICE_PORT='8080'
+      ####### SHIBBOLETH SECTION #######
+      - HOSTNAME='example.com'
+      - IDP_ENTITY_ID='https://samltest.id/saml/idp'
+      - IDP_METADATA_URL='https://samltest.id/saml/idp'
+      - SUPPORT_EMAIL='root@localhost'
+      - SHIB_METADATA_BACKUP_URL='https://samltest.id/saml/idp'
+      - SHIB_DOWNLOAD_METADATA='true'
+    ports:
+      - 80:80
+      - 443:443
+    restart: always
+    links:
+      - tomcat-server
+    # volumes:
+    #   - $(pwd)/ssl/ssl.crt:/etc/apache2/ssl/ssl.crt:ro
+    #   - $(pwd)/ssl/ssl.key:/etc/apache2/ssl/ssl.key:ro
+```
+
+You should be redirected to a shibboleth login when you visit https://example.com

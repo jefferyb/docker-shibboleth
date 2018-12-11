@@ -79,8 +79,8 @@
         </MetadataProvider>
         -->
         <MetadataProvider type="XML" uri="{{ SHIB.IDP_METADATA_URL }}"
-    			backingFilePath="/etc/shibboleth/metadata/idp-metadata.xml" reloadInterval="600">
-    		</MetadataProvider>
+                        backingFilePath="/etc/shibboleth/metadata/idp-metadata.xml" reloadInterval="600">
+                </MetadataProvider>
 
         <!-- Example of locally maintained metadata. -->
         <!--

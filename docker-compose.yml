@@ -11,40 +11,29 @@
 version: '2'
 
 services:
-  kuali-coeus:
-    ####### Environment vars for kc-config.xml
-    environment:
-      - "KUALI_APP_URL=example.com"
-      - "KUALI_APP_URL_PORT="
-      - "TZ=America/Chicago"
-    image:          jefferyb/kuali_coeus
-    container_name: kuali-coeus-bundled
-    hostname:       kualicoeusbundled
-    restart:        always
+  tomcat-server:
+    image: tomcat
 
-  shibboleth:
-    links:
-      - kuali-coeus
+  shibboleth-sp:
+    image: jefferyb/shibboleth
+    container_name: shibboleth-sp
     environment:
-      - "TZ=America/Chicago"
-      - "HOSTNAME=example.com"
-      ####### APACHE/TOMCAT SECTION #######
-      - "TOMCAT_DOCKER_CONTAINER=kuali-coeus-bundled"
-      - "TOMCAT_SESSION_LOCATION=kc-dev"
+      ####### APACHE SECTION #######
+      - SERVICE_TO_PROTECT='tomcat-server'
+      - SERVICE_PORT='8080'
       ####### SHIBBOLETH SECTION #######
-      - "IDP_ENTITY_ID=https://idp.testshib.org/idp/shibboleth"
-      - "IDP_METADATA_URL=http://www.testshib.org/metadata/testshib-providers.xml"
-      - "SUPPORT_EMAIL=root@localhost"
-      - "SHIB_METADATA_BACKUP_URL=http://www.testshib.org/metadata/testshib-providers.xml"
-      - "SHIB_DOWNLOAD_METADATA=true"
+      - HOSTNAME='example.com'
+      - IDP_ENTITY_ID='https://samltest.id/saml/idp'
+      - IDP_METADATA_URL='https://samltest.id/saml/idp'
+      - SUPPORT_EMAIL='root@localhost'
+      - SHIB_METADATA_BACKUP_URL='https://samltest.id/saml/idp'
+      - SHIB_DOWNLOAD_METADATA='true'
     ports:
       - 80:80
       - 443:443
-    image: jefferyb/shibboleth
-    container_name: shibboleth-server
-    hostname: shibbolethserver
     restart: always
-    volumes:
-      # certs location
-      - /opt/letsencrypt/letsencrypt-data/etc/letsencrypt/live/example.com/cert.pem:/etc/ssl/certs/ssl-cert-snakeoil.pem:ro
-      - /opt/letsencrypt/letsencrypt-data/etc/letsencrypt/live/example.com/privkey.pem:/etc/ssl/private/ssl-cert-snakeoil.key:ro
+    links:
+      - tomcat-server
+    # volumes:
+    #   - $(pwd)/ssl/shib-sp.crt:/etc/apache2/ssl/ssl.crt:ro
+    #   - $(pwd)/ssl/shib-sp.key:/etc/apache2/ssl/ssl.key:ro

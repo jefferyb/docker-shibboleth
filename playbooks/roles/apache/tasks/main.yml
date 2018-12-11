@@ -1,55 +1,40 @@
 ---
-- name: Checking, ( or if not present), Installing apache
-  apt:
-    name: "{{ item }}"
-    install_recommends: no
-    state: present
-    update_cache: yes
-  with_items:
-    - apache2
-    - ssl-cert
-  notify: restart apache
+- name: Create /etc/apache2/ssl directory
+  file: 
+    path: /etc/apache2/ssl
+    state: directory
 
-- name: Configuring apache
+- name: check if ssl.key exist
+  file:
+    path: /etc/apache2/ssl/ssl.key
+    state: touch
+  check_mode: yes
+  register: ssl_key
+
+- name: Generate an OpenSSL private key with the default values
+  openssl_privatekey:
+    path: "/etc/apache2/ssl/ssl.key"
+  when: ssl_key.changed
+
+- name:  Generate an OpenSSL Certificate Signing Request
+  openssl_csr:
+    path: "/etc/apache2/ssl/ssl.csr"
+    privatekey_path: "/etc/apache2/ssl/ssl.key"
+    common_name: "{{ HOSTNAME }}"
+  when: ssl_key.changed
+
+- name: Generate a Self Signed OpenSSL certificate
+  openssl_certificate:
+    path: "/etc/apache2/ssl/ssl.crt"
+    privatekey_path: "/etc/apache2/ssl/ssl.key"
+    csr_path: "/etc/apache2/ssl/ssl.csr"
+    provider: selfsigned
+  when: ssl_key.changed
+
+- name: Configure apache proxy
   template:
-    src: apache2.conf.j2
-    dest: /etc/apache2/apache2.conf
+    src: 000-default.conf.j2
+    dest: /etc/apache2/sites-available/000-default.conf
     owner: root
     group: root
-  notify: restart apache
-
-- name: Configuring apache proxy
-  template:
-    src: "{{ item }}.j2"
-    dest: "/etc/apache2/sites-available/{{ item }}"
-    owner: root
-    group: root
-  with_items:
-    - 000-default.conf
-    - default-ssl.conf
-  notify: restart apache
-
-- name: Checking, ( or if not present), Generating self-signed SSL certificate
-  command: "{{ item }}"
-  with_items:
-    - openssl genrsa -des3 -passout pass:x -out server.pass.key 2048
-    - openssl rsa -passin pass:x -in server.pass.key -out "{{ SSL_CERTS_PRIVKEY_PATH }}"
-    - rm -f server.pass.key
-    - openssl req -new -subj "{{ SSL_CERTS_FIELDS }}" -key "{{ SSL_CERTS_PRIVKEY_PATH }}" -out "{{ SSL_CERTS_CSR_PATH }}"
-    - openssl x509 -req -sha256 -days "{{ SSL_CERTS_DAYS }}" -in "{{ SSL_CERTS_CSR_PATH }}" -signkey "{{ SSL_CERTS_PRIVKEY_PATH }}" -out "{{ SSL_CERTS_CERT_PATH }}"
-  args:
-      creates: "{{ SSL_CERTS_CERT_PATH }}"
-  when: SSL_CERTS_GENERATE_SELF_SIGNED
-  notify: restart apache
-
-- name: Enabling SSL
-  shell: a2enmod "{{ item }}"
-  with_items:
-    - ssl
-    - rewrite
-    - proxy_ajp
-  notify: restart apache
-
-- name: Activating SSL
-  command: a2ensite default-ssl
   notify: restart apache
